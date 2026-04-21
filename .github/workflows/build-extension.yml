@@ -40,7 +40,7 @@ jobs:
 
       - name: Initialize build state
         run: |
-          echo '{"stage":0,"tool":"${{ env.TOOL_NAME }}","status":"running","errors":[]}' > build-state.json
+          echo '{"stage":0,"tool":"","status":"running","errors":[]}' > build-state.json
           git add build-state.json
           git commit -m "Initialize build state"
 
@@ -48,22 +48,16 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          BRIEF=$(cat brief.md)
-          PROMPT=$(cat prompts/stage-1-scaffold.md)
-          claude -p "${PROMPT}
+          claude --print "$(cat prompts/stage-1-scaffold.md)
 
 ---
 BRIEF:
-${BRIEF}" \
+$(cat brief.md)" \
             --allowedTools "Edit,Write,Read,Bash" \
-            --no-interactive
+            --output-format text
           git add -A
-          git commit -m "Stage 1: scaffold extension structure"
-          node -e "
-            const s = require('./build-state.json');
-            s.stage = 1; s.status = 'running';
-            require('fs').writeFileSync('build-state.json', JSON.stringify(s, null, 2));
-          "
+          git commit -m "Stage 1: scaffold extension structure" || true
+          node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('build-state.json'));s.stage=1;fs.writeFileSync('build-state.json',JSON.stringify(s,null,2));"
           git add build-state.json
           git commit -m "Build state: stage 1 complete"
 
@@ -71,26 +65,19 @@ ${BRIEF}" \
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          BRIEF=$(cat brief.md)
-          STATE=$(cat build-state.json)
-          PROMPT=$(cat prompts/stage-2-core.md)
-          claude -p "${PROMPT}
+          claude --print "$(cat prompts/stage-2-core.md)
 
 ---
 BRIEF:
-${BRIEF}
+$(cat brief.md)
 
 STATE:
-${STATE}" \
+$(cat build-state.json)" \
             --allowedTools "Edit,Write,Read,Bash" \
-            --no-interactive
+            --output-format text
           git add -A
-          git commit -m "Stage 2: implement core feature"
-          node -e "
-            const s = require('./build-state.json');
-            s.stage = 2;
-            require('fs').writeFileSync('build-state.json', JSON.stringify(s, null, 2));
-          "
+          git commit -m "Stage 2: implement core feature" || true
+          node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('build-state.json'));s.stage=2;fs.writeFileSync('build-state.json',JSON.stringify(s,null,2));"
           git add build-state.json
           git commit -m "Build state: stage 2 complete"
 
@@ -100,29 +87,22 @@ ${STATE}" \
         run: |
           NEEDS_WORKER=$(grep "^Needs Cloudflare Worker proxy:" brief.md | grep -i "yes" | wc -l)
           if [ "$NEEDS_WORKER" -gt "0" ]; then
-            BRIEF=$(cat brief.md)
-            STATE=$(cat build-state.json)
-            PROMPT=$(cat prompts/stage-3-worker.md)
-            claude -p "${PROMPT}
+            claude --print "$(cat prompts/stage-3-worker.md)
 
 ---
 BRIEF:
-${BRIEF}
+$(cat brief.md)
 
 STATE:
-${STATE}" \
+$(cat build-state.json)" \
               --allowedTools "Edit,Write,Read,Bash" \
-              --no-interactive
+              --output-format text
             git add -A
-            git commit -m "Stage 3: add Cloudflare Worker proxy"
+            git commit -m "Stage 3: add Cloudflare Worker proxy" || true
           else
             echo "No Worker needed, skipping stage 3"
           fi
-          node -e "
-            const s = require('./build-state.json');
-            s.stage = 3;
-            require('fs').writeFileSync('build-state.json', JSON.stringify(s, null, 2));
-          "
+          node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('build-state.json'));s.stage=3;fs.writeFileSync('build-state.json',JSON.stringify(s,null,2));"
           git add build-state.json
           git commit -m "Build state: stage 3 complete"
 
@@ -130,26 +110,19 @@ ${STATE}" \
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          BRIEF=$(cat brief.md)
-          STATE=$(cat build-state.json)
-          PROMPT=$(cat prompts/stage-4-docs.md)
-          claude -p "${PROMPT}
+          claude --print "$(cat prompts/stage-4-docs.md)
 
 ---
 BRIEF:
-${BRIEF}
+$(cat brief.md)
 
 STATE:
-${STATE}" \
+$(cat build-state.json)" \
             --allowedTools "Edit,Write,Read,Bash" \
-            --no-interactive
+            --output-format text
           git add -A
-          git commit -m "Stage 4: README and store copy"
-          node -e "
-            const s = require('./build-state.json');
-            s.stage = 4;
-            require('fs').writeFileSync('build-state.json', JSON.stringify(s, null, 2));
-          "
+          git commit -m "Stage 4: README and store copy" || true
+          node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('build-state.json'));s.stage=4;fs.writeFileSync('build-state.json',JSON.stringify(s,null,2));"
           git add build-state.json
           git commit -m "Build state: stage 4 complete"
 
@@ -157,26 +130,19 @@ ${STATE}" \
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          BRIEF=$(cat brief.md)
-          STATE=$(cat build-state.json)
-          PROMPT=$(cat prompts/stage-5-polish.md)
-          claude -p "${PROMPT}
+          claude --print "$(cat prompts/stage-5-polish.md)
 
 ---
 BRIEF:
-${BRIEF}
+$(cat brief.md)
 
 STATE:
-${STATE}" \
+$(cat build-state.json)" \
             --allowedTools "Edit,Write,Read,Bash" \
-            --no-interactive
+            --output-format text
           git add -A
-          git commit -m "Stage 5: polish and version 0.1.0"
-          node -e "
-            const s = require('./build-state.json');
-            s.stage = 5; s.status = 'complete';
-            require('fs').writeFileSync('build-state.json', JSON.stringify(s, null, 2));
-          "
+          git commit -m "Stage 5: polish and version 0.1.0" || true
+          node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('build-state.json'));s.stage=5;s.status='complete';fs.writeFileSync('build-state.json',JSON.stringify(s,null,2));"
           git add build-state.json
           git commit -m "Build state: complete"
 
@@ -207,7 +173,8 @@ ${BRIEF_SUMMARY}
 ## What still needs you
 
 - Chrome Web Store listing
-- Cloudflare Worker secrets
+- Cloudflare Worker secrets (if applicable)
 - Polar product setup (if freemium)
+- Icon assets
 
 Built by AppCaddy pipeline. Check build-state.json for stage log."
