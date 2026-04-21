@@ -7,4 +7,4 @@ AI model calls: no
 If yes, what for: 
 Free vs Pro split: free only
 If freemium, describe split: 
-Known edge cases or constraints: Some links are JavaScript-driven and have no real href. If resolution fails or times out after 3 seconds, show "Could not resolve" instead of hanging. 
+Known edge cases or constraints: Some links are JavaScript-driven and have no real href. If resolution fails or times out after 3 seconds, show "Could not resolve" instead of hanging.
