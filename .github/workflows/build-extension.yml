@@ -145,20 +145,25 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          BRIEF_SUMMARY=$(grep "^One-sentence purpose:" brief.md | sed 's/One-sentence purpose: //')
-          TOOL=${{ env.TOOL_NAME }}
-          cat > /tmp/pr-body.md << PREOF
-## ${TOOL}
+          python3 -c "
+          import subprocess, sys, os
+          tool = os.environ.get('TOOL_NAME', 'tool')
+          brief_summary = ''
+          for line in open('brief.md'):
+              if line.startswith('One-sentence purpose:'):
+                  brief_summary = line.replace('One-sentence purpose:', '').strip()
+                  break
+          body = '''## {}
 
-${BRIEF_SUMMARY}
+{}
 
 ## What to review
 
-- [ ] Core feature behavior matches the brief
-- [ ] No SaaS language in README or store copy
-- [ ] Manifest version is 0.1.0
-- [ ] Worker proxy wired correctly (if applicable)
-- [ ] Comment style matches code standards
+- Core feature behavior matches the brief
+- No SaaS language in README or store copy
+- Manifest version is 0.1.0
+- Worker proxy wired correctly (if applicable)
+- Comment style matches code standards
 
 ## What still needs you
 
@@ -168,9 +173,16 @@ ${BRIEF_SUMMARY}
 - Icon assets
 
 Built by AppCaddy pipeline. Check build-state.json for stage log.
-PREOF
-          gh pr create \
-            --base main \
-            --head build/${TOOL} \
-            --title "${TOOL} v0.1.0" \
-            --body-file /tmp/pr-body.md
+'''.format(tool, brief_summary)
+          open('/tmp/pr-body.md', 'w').write(body)
+          r = subprocess.run([
+              'gh', 'pr', 'create',
+              '--base', 'main',
+              '--head', 'build/' + tool,
+              '--title', tool + ' v0.1.0',
+              '--body-file', '/tmp/pr-body.md'
+          ], env=dict(os.environ))
+          sys.exit(r.returncode)
+          "
+        env:
+          TOOL_NAME: ${{ env.TOOL_NAME }}
