@@ -1,0 +1,213 @@
+name: Build AppCaddy Extension
+
+on:
+  push:
+    paths:
+      - 'brief.md'
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Configure git
+        run: |
+          git config user.name "AppCaddy Builder"
+          git config user.email "builder@appcaddy.app"
+
+      - name: Create build branch
+        run: |
+          TOOL_NAME=$(grep "^Tool name:" brief.md | sed 's/Tool name: //' | tr '[:upper:]' '[:lower:]' | tr ' ' '-')
+          echo "TOOL_NAME=$TOOL_NAME" >> $GITHUB_ENV
+          git checkout -b build/$TOOL_NAME
+
+      - name: Initialize build state
+        run: |
+          echo '{"stage":0,"tool":"${{ env.TOOL_NAME }}","status":"running","errors":[]}' > build-state.json
+          git add build-state.json
+          git commit -m "Initialize build state"
+
+      - name: Stage 1 - Scaffold
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          BRIEF=$(cat brief.md)
+          PROMPT=$(cat prompts/stage-1-scaffold.md)
+          claude -p "${PROMPT}
+
+---
+BRIEF:
+${BRIEF}" \
+            --allowedTools "Edit,Write,Read,Bash" \
+            --no-interactive
+          git add -A
+          git commit -m "Stage 1: scaffold extension structure"
+          node -e "
+            const s = require('./build-state.json');
+            s.stage = 1; s.status = 'running';
+            require('fs').writeFileSync('build-state.json', JSON.stringify(s, null, 2));
+          "
+          git add build-state.json
+          git commit -m "Build state: stage 1 complete"
+
+      - name: Stage 2 - Core feature
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          BRIEF=$(cat brief.md)
+          STATE=$(cat build-state.json)
+          PROMPT=$(cat prompts/stage-2-core.md)
+          claude -p "${PROMPT}
+
+---
+BRIEF:
+${BRIEF}
+
+STATE:
+${STATE}" \
+            --allowedTools "Edit,Write,Read,Bash" \
+            --no-interactive
+          git add -A
+          git commit -m "Stage 2: implement core feature"
+          node -e "
+            const s = require('./build-state.json');
+            s.stage = 2;
+            require('fs').writeFileSync('build-state.json', JSON.stringify(s, null, 2));
+          "
+          git add build-state.json
+          git commit -m "Build state: stage 2 complete"
+
+      - name: Stage 3 - Cloudflare Worker (conditional)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          NEEDS_WORKER=$(grep "^Needs Cloudflare Worker proxy:" brief.md | grep -i "yes" | wc -l)
+          if [ "$NEEDS_WORKER" -gt "0" ]; then
+            BRIEF=$(cat brief.md)
+            STATE=$(cat build-state.json)
+            PROMPT=$(cat prompts/stage-3-worker.md)
+            claude -p "${PROMPT}
+
+---
+BRIEF:
+${BRIEF}
+
+STATE:
+${STATE}" \
+              --allowedTools "Edit,Write,Read,Bash" \
+              --no-interactive
+            git add -A
+            git commit -m "Stage 3: add Cloudflare Worker proxy"
+          else
+            echo "No Worker needed, skipping stage 3"
+          fi
+          node -e "
+            const s = require('./build-state.json');
+            s.stage = 3;
+            require('fs').writeFileSync('build-state.json', JSON.stringify(s, null, 2));
+          "
+          git add build-state.json
+          git commit -m "Build state: stage 3 complete"
+
+      - name: Stage 4 - Docs and copy
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          BRIEF=$(cat brief.md)
+          STATE=$(cat build-state.json)
+          PROMPT=$(cat prompts/stage-4-docs.md)
+          claude -p "${PROMPT}
+
+---
+BRIEF:
+${BRIEF}
+
+STATE:
+${STATE}" \
+            --allowedTools "Edit,Write,Read,Bash" \
+            --no-interactive
+          git add -A
+          git commit -m "Stage 4: README and store copy"
+          node -e "
+            const s = require('./build-state.json');
+            s.stage = 4;
+            require('fs').writeFileSync('build-state.json', JSON.stringify(s, null, 2));
+          "
+          git add build-state.json
+          git commit -m "Build state: stage 4 complete"
+
+      - name: Stage 5 - Polish
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          BRIEF=$(cat brief.md)
+          STATE=$(cat build-state.json)
+          PROMPT=$(cat prompts/stage-5-polish.md)
+          claude -p "${PROMPT}
+
+---
+BRIEF:
+${BRIEF}
+
+STATE:
+${STATE}" \
+            --allowedTools "Edit,Write,Read,Bash" \
+            --no-interactive
+          git add -A
+          git commit -m "Stage 5: polish and version 0.1.0"
+          node -e "
+            const s = require('./build-state.json');
+            s.stage = 5; s.status = 'complete';
+            require('fs').writeFileSync('build-state.json', JSON.stringify(s, null, 2));
+          "
+          git add build-state.json
+          git commit -m "Build state: complete"
+
+      - name: Push build branch
+        run: git push origin build/${{ env.TOOL_NAME }}
+
+      - name: Open PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRIEF_SUMMARY=$(grep "^One-sentence purpose:" brief.md | sed 's/One-sentence purpose: //')
+          gh pr create \
+            --base main \
+            --head build/${{ env.TOOL_NAME }} \
+            --title "${{ env.TOOL_NAME }} v0.1.0" \
+            --body "## ${{ env.TOOL_NAME }}
+
+${BRIEF_SUMMARY}
+
+## What to review
+
+- [ ] Core feature behavior matches the brief
+- [ ] No SaaS language in README or store copy
+- [ ] Manifest version is 0.1.0
+- [ ] Worker proxy wired correctly (if applicable)
+- [ ] Comment style matches code standards
+
+## What still needs you
+
+- Chrome Web Store listing
+- Cloudflare Worker secrets
+- Polar product setup (if freemium)
+
+Built by AppCaddy pipeline. Check build-state.json for stage log."
