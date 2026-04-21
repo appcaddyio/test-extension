@@ -48,13 +48,13 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          claude --print "$(cat prompts/stage-1-scaffold.md)
-
----
-BRIEF:
-$(cat brief.md)" \
-            --allowedTools "Edit,Write,Read,Bash" \
-            --output-format text
+          python3 -c "
+          import subprocess, sys
+          prompt = open('prompts/stage-1-scaffold.md').read()
+          prompt += '\n\n---\nBRIEF:\n' + open('brief.md').read()
+          r = subprocess.run(['claude', '--print', '--allowedTools', 'Edit,Write,Read,Bash', '--output-format', 'text', prompt])
+          sys.exit(r.returncode)
+          "
           git add -A
           git commit -m "Stage 1: scaffold extension structure" || true
           node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('build-state.json'));s.stage=1;fs.writeFileSync('build-state.json',JSON.stringify(s,null,2));"
@@ -65,16 +65,14 @@ $(cat brief.md)" \
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          claude --print "$(cat prompts/stage-2-core.md)
-
----
-BRIEF:
-$(cat brief.md)
-
-STATE:
-$(cat build-state.json)" \
-            --allowedTools "Edit,Write,Read,Bash" \
-            --output-format text
+          python3 -c "
+          import subprocess, sys
+          prompt = open('prompts/stage-2-core.md').read()
+          prompt += '\n\n---\nBRIEF:\n' + open('brief.md').read()
+          prompt += '\n\n---\nSTATE:\n' + open('build-state.json').read()
+          r = subprocess.run(['claude', '--print', '--allowedTools', 'Edit,Write,Read,Bash', '--output-format', 'text', prompt])
+          sys.exit(r.returncode)
+          "
           git add -A
           git commit -m "Stage 2: implement core feature" || true
           node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('build-state.json'));s.stage=2;fs.writeFileSync('build-state.json',JSON.stringify(s,null,2));"
@@ -87,16 +85,14 @@ $(cat build-state.json)" \
         run: |
           NEEDS_WORKER=$(grep "^Needs Cloudflare Worker proxy:" brief.md | grep -i "yes" | wc -l)
           if [ "$NEEDS_WORKER" -gt "0" ]; then
-            claude --print "$(cat prompts/stage-3-worker.md)
-
----
-BRIEF:
-$(cat brief.md)
-
-STATE:
-$(cat build-state.json)" \
-              --allowedTools "Edit,Write,Read,Bash" \
-              --output-format text
+            python3 -c "
+          import subprocess, sys
+          prompt = open('prompts/stage-3-worker.md').read()
+          prompt += '\n\n---\nBRIEF:\n' + open('brief.md').read()
+          prompt += '\n\n---\nSTATE:\n' + open('build-state.json').read()
+          r = subprocess.run(['claude', '--print', '--allowedTools', 'Edit,Write,Read,Bash', '--output-format', 'text', prompt])
+          sys.exit(r.returncode)
+            "
             git add -A
             git commit -m "Stage 3: add Cloudflare Worker proxy" || true
           else
@@ -110,16 +106,14 @@ $(cat build-state.json)" \
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          claude --print "$(cat prompts/stage-4-docs.md)
-
----
-BRIEF:
-$(cat brief.md)
-
-STATE:
-$(cat build-state.json)" \
-            --allowedTools "Edit,Write,Read,Bash" \
-            --output-format text
+          python3 -c "
+          import subprocess, sys
+          prompt = open('prompts/stage-4-docs.md').read()
+          prompt += '\n\n---\nBRIEF:\n' + open('brief.md').read()
+          prompt += '\n\n---\nSTATE:\n' + open('build-state.json').read()
+          r = subprocess.run(['claude', '--print', '--allowedTools', 'Edit,Write,Read,Bash', '--output-format', 'text', prompt])
+          sys.exit(r.returncode)
+          "
           git add -A
           git commit -m "Stage 4: README and store copy" || true
           node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('build-state.json'));s.stage=4;fs.writeFileSync('build-state.json',JSON.stringify(s,null,2));"
@@ -130,16 +124,14 @@ $(cat build-state.json)" \
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          claude --print "$(cat prompts/stage-5-polish.md)
-
----
-BRIEF:
-$(cat brief.md)
-
-STATE:
-$(cat build-state.json)" \
-            --allowedTools "Edit,Write,Read,Bash" \
-            --output-format text
+          python3 -c "
+          import subprocess, sys
+          prompt = open('prompts/stage-5-polish.md').read()
+          prompt += '\n\n---\nBRIEF:\n' + open('brief.md').read()
+          prompt += '\n\n---\nSTATE:\n' + open('build-state.json').read()
+          r = subprocess.run(['claude', '--print', '--allowedTools', 'Edit,Write,Read,Bash', '--output-format', 'text', prompt])
+          sys.exit(r.returncode)
+          "
           git add -A
           git commit -m "Stage 5: polish and version 0.1.0" || true
           node -e "const fs=require('fs');const s=JSON.parse(fs.readFileSync('build-state.json'));s.stage=5;s.status='complete';fs.writeFileSync('build-state.json',JSON.stringify(s,null,2));"
